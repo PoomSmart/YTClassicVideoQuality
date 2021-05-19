@@ -1,0 +1,9 @@
+Package: com.ps.ytclassicvideoquality
+Name: YTClassicVideoQuality
+Version: 1.0.0
+Architecture: iphoneos-arm
+Description: Revert to the original video quality selector in YouTube app.
+Maintainer: PoomSmart
+Author: PoomSmart
+Section: Tweaks
+Depends: mobilesubstrate (>= 0.9.5000), firmware (>= 11.0)
