@@ -1,8 +1,4 @@
-#import <Foundation/Foundation.h>
-
-@interface YTVideoQualitySwitchOriginalController : NSObject
-- (instancetype)initWithParentResponder:(id)responder;
-@end
+#import "../YouTubeHeader/YTVideoQualitySwitchOriginalController.h"
 
 %hook YTVideoQualitySwitchControllerFactory
 
