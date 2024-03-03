@@ -33,12 +33,22 @@
 
 %end
 
+static BOOL isQualitySelectionNode(ASDisplayNode *node) {
+    if ([node.accessibilityIdentifier hasPrefix:@"id.elements.components.overflow_menu_item_"]) {
+        NSString *label = node.accessibilityLabel;
+        NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"\\d+p" options:0 error:nil];
+        NSTextCheckingResult *match = [regex firstMatchInString:label options:0 range:NSMakeRange(0, label.length)];
+        return match != nil;
+    }
+    return NO;
+}
+
 %hook _ASDisplayView
 
 - (void)didMoveToWindow {
     %orig;
     ASDisplayNode *node = self.keepalive_node;
-    if (![node.accessibilityIdentifier isEqualToString:@"id.elements.components.overflow_menu_item_Quality"]) return;
+    if (!isQualitySelectionNode(node)) return;
     YTActionSheetDialogViewController *vc = (YTActionSheetDialogViewController *)[node closestViewController];
     if (![vc isKindOfClass:%c(YTActionSheetDialogViewController)]) return;
     if (![vc.parentViewController isKindOfClass:%c(YTBottomSheetController)]) return;
