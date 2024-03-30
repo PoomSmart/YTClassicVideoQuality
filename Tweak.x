@@ -23,7 +23,8 @@
     if (self.redesignedController == nil)
         self.redesignedController = [[%c(YTVideoQualitySwitchRedesignedController) alloc] initWithServiceRegistryScope:nil parentResponder:nil];
     [self.redesignedController setValue:[self valueForKey:@"_video"] forKey:@"_video"];
-    %orig([self.redesignedController addRestrictedFormats:formats]);
+    NSArray <MLFormat *> *newFormats = [self.redesignedController respondsToSelector:@selector(addRestrictedFormats:)] ? [self.redesignedController addRestrictedFormats:formats] : formats;
+    %orig(newFormats);
 }
 
 - (void)dealloc {
