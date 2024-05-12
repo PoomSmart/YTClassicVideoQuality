@@ -1,5 +1,8 @@
-#import <YouTubeHeader/_ASDisplayView.h>
+#import <YouTubeHeader/ASDisplayNode.h>
+#import <YouTubeHeader/ASNodeController.h>
+#import <YouTubeHeader/ELMTouchCommandPropertiesHandler.h>
 #import <YouTubeHeader/YTActionSheetDialogViewController.h>
+#import <YouTubeHeader/YTMainAppVideoPlayerOverlayViewController.h>
 #import <YouTubeHeader/YTResponder.h>
 #import <YouTubeHeader/YTVideoQualitySwitchOriginalController.h>
 #import <YouTubeHeader/YTVideoQualitySwitchRedesignedController.h>
@@ -44,26 +47,24 @@ static BOOL isQualitySelectionNode(ASDisplayNode *node) {
     return NO;
 }
 
-%hook _ASDisplayView
+%hook ELMTouchCommandPropertiesHandler
 
-- (void)didMoveToWindow {
-    %orig;
-    ASDisplayNode *node = self.keepalive_node;
-    if (!isQualitySelectionNode(node)) return;
-    YTActionSheetDialogViewController *vc = (YTActionSheetDialogViewController *)[node closestViewController];
-    if (![vc isKindOfClass:%c(YTActionSheetDialogViewController)]) return;
-    if (![vc.parentViewController isKindOfClass:%c(YTBottomSheetController)]) return;
-    id <YTResponder> sc = (id <YTResponder>)vc.delegate;
-    id c = [sc parentResponder];
-    if (![c isKindOfClass:%c(YTMainAppVideoPlayerOverlayViewController)]) return;
-    for (UIGestureRecognizer *gesture in self.gestureRecognizers) {
-        if ([gesture isKindOfClass:[UITapGestureRecognizer class]]) {
-            [self removeGestureRecognizer:gesture];
-            break;
+- (void)handleTap {
+    ASDisplayNode *node = [(ASNodeController *)[self valueForKey:@"_controller"] node];
+    if (isQualitySelectionNode(node)) {
+        YTActionSheetDialogViewController *vc = (YTActionSheetDialogViewController *)[node closestViewController];
+        if ([vc isKindOfClass:%c(YTActionSheetDialogViewController)] && [vc.parentViewController isKindOfClass:%c(YTBottomSheetController)]) {
+            id <YTResponder> sc = (id <YTResponder>)vc.delegate;
+            id c = [sc parentResponder];
+            if ([c isKindOfClass:%c(YTMainAppVideoPlayerOverlayViewController)]) {
+                [c dismissViewControllerAnimated:YES completion:^{
+                    [(YTMainAppVideoPlayerOverlayViewController *)c didPressVideoQuality:nil];
+                }];
+                return;
+            }
         }
     }
-    UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:c action:@selector(didPressVideoQuality:)];
-    [self addGestureRecognizer:tap];
+    %orig;
 }
 
 %end
