@@ -38,13 +38,11 @@
 %end
 
 static BOOL isQualitySelectionNode(ASDisplayNode *node) {
-    if ([node.accessibilityIdentifier hasPrefix:@"id.elements.components.overflow_menu_item_"]) {
-        NSString *label = node.accessibilityLabel;
-        NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"\\d+p" options:0 error:nil];
-        NSTextCheckingResult *match = [regex firstMatchInString:label options:0 range:NSMakeRange(0, label.length)];
-        return match != nil;
-    }
-    return NO;
+    if (![node.accessibilityIdentifier hasPrefix:@"id.elements.components.overflow_menu_item_"]) return NO;
+    NSString *label = node.accessibilityLabel;
+    NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"\\d+p" options:0 error:nil];
+    NSTextCheckingResult *match = [regex firstMatchInString:label options:0 range:NSMakeRange(0, label.length)];
+    return match != nil;
 }
 
 %hook ELMTouchCommandPropertiesHandler
