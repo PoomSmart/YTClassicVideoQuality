@@ -1,13 +1,18 @@
 #import <YouTubeHeader/ASDisplayNode.h>
 #import <YouTubeHeader/ASNodeController.h>
+#import <YouTubeHeader/ASTextNode.h>
 #import <YouTubeHeader/ELMTouchCommandPropertiesHandler.h>
+#import <YouTubeHeader/YTActionSheetAction.h>
 #import <YouTubeHeader/YTActionSheetDialogViewController.h>
+#import <YouTubeHeader/YTIMenuItemSupportedRenderers.h>
 #import <YouTubeHeader/YTMainAppVideoPlayerOverlayViewController.h>
+#import <YouTubeHeader/YTModuleEngagementPanelViewController.h>
 #import <YouTubeHeader/YTResponder.h>
 #import <YouTubeHeader/YTVideoQualitySwitchOriginalController.h>
 #import <YouTubeHeader/YTVideoQualitySwitchRedesignedController.h>
+#import <YouTubeHeader/YTWatchViewController.h>
 
-@interface YTVideoQualitySwitchOriginalController (Addition)
+@interface YTVideoQualitySwitchOriginalController (YTClassicVideoQuality)
 @property (retain, nonatomic) YTVideoQualitySwitchRedesignedController *redesignedController;
 @end
 
@@ -38,11 +43,16 @@
 %end
 
 static BOOL isQualitySelectionNode(ASDisplayNode *node) {
-    if (![node.accessibilityIdentifier hasPrefix:@"id.elements.components.overflow_menu_item_"]) return NO;
-    NSString *label = node.accessibilityLabel;
-    NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"\\d+p" options:0 error:nil];
-    NSTextCheckingResult *match = [regex firstMatchInString:label options:0 range:NSMakeRange(0, label.length)];
-    return match != nil;
+    NSArray *yogaChildren = node.yogaChildren;
+    if (yogaChildren.count == 2 && [[yogaChildren lastObject] isKindOfClass:%c(ASTextNode)]) {
+        ASDisplayNode *parent = node.yogaParent, *previousParent;
+        do {
+            previousParent = parent;
+            parent = parent.yogaParent;
+        } while (parent && parent.yogaChildren.count != 5);
+        return parent && parent.yogaChildren.count == 5 && parent.yogaChildren[3] == previousParent;
+    }
+    return NO;
 }
 
 %hook ELMTouchCommandPropertiesHandler
@@ -50,19 +60,52 @@ static BOOL isQualitySelectionNode(ASDisplayNode *node) {
 - (void)handleTap {
     ASDisplayNode *node = [(ASNodeController *)[self valueForKey:@"_controller"] node];
     if (isQualitySelectionNode(node)) {
-        YTActionSheetDialogViewController *vc = (YTActionSheetDialogViewController *)[node closestViewController];
-        if ([vc isKindOfClass:%c(YTActionSheetDialogViewController)] && [vc.parentViewController isKindOfClass:%c(YTBottomSheetController)]) {
-            id <YTResponder> sc = (id <YTResponder>)vc.delegate;
-            id c = [sc parentResponder];
-            if ([c isKindOfClass:%c(YTMainAppVideoPlayerOverlayViewController)]) {
-                [c dismissViewControllerAnimated:YES completion:^{
-                    [(YTMainAppVideoPlayerOverlayViewController *)c didPressVideoQuality:nil];
-                }];
-                return;
+        UIViewController *vc = [node closestViewController];
+        if ([vc isKindOfClass:(%c(YTAppCollectionViewController))]) {
+            do {
+                vc = vc.parentViewController;
+            } while (vc && ![vc isKindOfClass:%c(YTModuleEngagementPanelViewController)]);
+            if ([vc isKindOfClass:%c(YTModuleEngagementPanelViewController)]) {
+                do {
+                    vc = vc.parentViewController;
+                } while (vc && ![vc isKindOfClass:%c(YTWatchViewController)]);
+                if ([vc isKindOfClass:%c(YTWatchViewController)]) {
+                    YTPlayerViewController *pvc = ((YTWatchViewController *)vc).playerViewController;
+                    id c = [pvc activeVideoPlayerOverlay];
+                    if ([c isKindOfClass:%c(YTMainAppVideoPlayerOverlayViewController)]) {
+                        [c dismissViewControllerAnimated:YES completion:^{
+                            [c didPressVideoQuality:nil];
+                        }];
+                        return;
+                    }
+                }
             }
         }
     }
     %orig;
+}
+
+%end
+
+%hook YTMenuController
+
+- (NSMutableArray <YTActionSheetAction *> *)actionsForRenderers:(NSMutableArray <YTIMenuItemSupportedRenderers *> *)renderers fromView:(UIView *)view entry:(id)entry shouldLogItems:(BOOL)shouldLogItems firstResponder:(id)firstResponder {
+    NSUInteger index = [renderers indexOfObjectPassingTest:^BOOL(YTIMenuItemSupportedRenderers *renderer, NSUInteger idx, BOOL *stop) {
+        YTIMenuItemSupportedRenderersElementRendererCompatibilityOptionsExtension *extension = (YTIMenuItemSupportedRenderersElementRendererCompatibilityOptionsExtension *)[renderer.elementRenderer.compatibilityOptions messageForFieldNumber:396644439];
+        BOOL isVideoQuality = [extension.menuItemIdentifier isEqualToString:@"menu_item_video_quality"];
+        if (isVideoQuality) *stop = YES;
+        return isVideoQuality;
+    }];
+    NSMutableArray <YTActionSheetAction *> *actions = %orig;
+    if (index != NSNotFound) {
+        YTActionSheetAction *action = actions[index];
+        action.handler = ^{
+            [firstResponder didPressVideoQuality:nil];
+        };
+        UIView *elementView = [action.button valueForKey:@"_elementView"];
+        elementView.userInteractionEnabled = NO;
+    }
+    return actions;
 }
 
 %end
