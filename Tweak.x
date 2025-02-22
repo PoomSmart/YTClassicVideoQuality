@@ -89,7 +89,7 @@ static BOOL isQualitySelectionNode(ASDisplayNode *node) {
 
 %hook YTMenuController
 
-- (NSMutableArray <YTActionSheetAction *> *)actionsForRenderers:(NSMutableArray <YTIMenuItemSupportedRenderers *> *)renderers fromView:(UIView *)view entry:(id)entry shouldLogItems:(BOOL)shouldLogItems firstResponder:(id)firstResponder {
+- (NSMutableArray <YTActionSheetAction *> *)actionsForRenderers:(NSMutableArray <YTIMenuItemSupportedRenderers *> *)renderers fromView:(UIView *)fromView entry:(id)entry shouldLogItems:(BOOL)shouldLogItems firstResponder:(id)firstResponder {
     NSUInteger index = [renderers indexOfObjectPassingTest:^BOOL(YTIMenuItemSupportedRenderers *renderer, NSUInteger idx, BOOL *stop) {
         YTIMenuItemSupportedRenderersElementRendererCompatibilityOptionsExtension *extension = (YTIMenuItemSupportedRenderersElementRendererCompatibilityOptionsExtension *)[renderer.elementRenderer.compatibilityOptions messageForFieldNumber:396644439];
         BOOL isVideoQuality = [extension.menuItemIdentifier isEqualToString:@"menu_item_video_quality"];
@@ -100,7 +100,7 @@ static BOOL isQualitySelectionNode(ASDisplayNode *node) {
     if (index != NSNotFound) {
         YTActionSheetAction *action = actions[index];
         action.handler = ^{
-            [firstResponder didPressVideoQuality:nil];
+            [firstResponder didPressVideoQuality:fromView];
         };
         UIView *elementView = [action.button valueForKey:@"_elementView"];
         elementView.userInteractionEnabled = NO;
