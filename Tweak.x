@@ -1,16 +1,8 @@
-#import <YouTubeHeader/ASDisplayNode.h>
-#import <YouTubeHeader/ASNodeController.h>
-#import <YouTubeHeader/ASTextNode.h>
-#import <YouTubeHeader/ELMTouchCommandPropertiesHandler.h>
 #import <YouTubeHeader/YTActionSheetAction.h>
-#import <YouTubeHeader/YTActionSheetDialogViewController.h>
 #import <YouTubeHeader/YTIMenuItemSupportedRenderers.h>
 #import <YouTubeHeader/YTMainAppVideoPlayerOverlayViewController.h>
-#import <YouTubeHeader/YTModuleEngagementPanelViewController.h>
-#import <YouTubeHeader/YTResponder.h>
 #import <YouTubeHeader/YTVideoQualitySwitchOriginalController.h>
 #import <YouTubeHeader/YTVideoQualitySwitchRedesignedController.h>
-#import <YouTubeHeader/YTWatchViewController.h>
 
 @interface YTVideoQualitySwitchOriginalController (YTClassicVideoQuality)
 @property (retain, nonatomic) YTVideoQualitySwitchRedesignedController *redesignedController;
@@ -37,51 +29,6 @@
 
 - (void)dealloc {
     self.redesignedController = nil;
-    %orig;
-}
-
-%end
-
-static BOOL isQualitySelectionNode(ASDisplayNode *node) {
-    NSArray *yogaChildren = node.yogaChildren;
-    if (yogaChildren.count == 2 && [[yogaChildren lastObject] isKindOfClass:%c(ASTextNode)]) {
-        ASDisplayNode *parent = node.yogaParent, *previousParent;
-        do {
-            previousParent = parent;
-            parent = parent.yogaParent;
-        } while (parent && parent.yogaChildren.count != 5);
-        return parent && parent.yogaChildren.count == 5 && parent.yogaChildren[3] == previousParent;
-    }
-    return NO;
-}
-
-%hook ELMTouchCommandPropertiesHandler
-
-- (void)handleTap {
-    ASDisplayNode *node = [(ASNodeController *)[self valueForKey:@"_controller"] node];
-    if (isQualitySelectionNode(node)) {
-        UIViewController *vc = [node closestViewController];
-        if ([vc isKindOfClass:(%c(YTAppCollectionViewController))]) {
-            do {
-                vc = vc.parentViewController;
-            } while (vc && ![vc isKindOfClass:%c(YTModuleEngagementPanelViewController)]);
-            if ([vc isKindOfClass:%c(YTModuleEngagementPanelViewController)]) {
-                do {
-                    vc = vc.parentViewController;
-                } while (vc && ![vc isKindOfClass:%c(YTWatchViewController)]);
-                if ([vc isKindOfClass:%c(YTWatchViewController)]) {
-                    YTPlayerViewController *pvc = ((YTWatchViewController *)vc).playerViewController;
-                    id c = [pvc activeVideoPlayerOverlay];
-                    if ([c isKindOfClass:%c(YTMainAppVideoPlayerOverlayViewController)]) {
-                        [c dismissViewControllerAnimated:YES completion:^{
-                            [c didPressVideoQuality:nil];
-                        }];
-                        return;
-                    }
-                }
-            }
-        }
-    }
     %orig;
 }
 
